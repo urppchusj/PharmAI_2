@@ -11,10 +11,11 @@ from matplotlib import pyplot as plt
 ##############
 
 data_dir = 'experiments/outliers_parameters'
+contamination_ratio = 0.2
 n_folds = 3
 depas_to_score = ['Overall', 'Néonatologie', 'Ob/gyn', 'Oncologie', 'Pédiatrie']
 
-anomaly_algorithm_rename_dict = {'IsolationForest(contamination=0.2)':'IF', 'OneClassSVM(nu=0.2)':'OC SVM'}
+anomaly_algorithm_rename_dict = {'LocalOutlierFactor(contamination={}, novelty=True)'.format(contamination_ratio):'LOF', 'IsolationForest(contamination={})'.format(contamination_ratio):'IF', 'OneClassSVM(nu={})'.format(contamination_ratio):'OC SVM gamma scale', 'OneClassSVM(gamma=\'auto\', nu={})'.format(contamination_ratio):'OC SVM gamma auto'}
 
 x_axis_name_in_figure = 'Components'
 algorith_name_in_figure = 'Alg'
