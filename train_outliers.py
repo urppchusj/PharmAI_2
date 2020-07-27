@@ -41,10 +41,10 @@ val_years_end = [2015,2016,2017] # inclusively
 depas_to_score = ['Overall', 'Néonatologie', 'Ob/gyn', 'Oncologie', 'Pédiatrie']
 contamination_ratio = 0.2
 param_grid = dict(
-				tsvd__n_components = [1024],
-				anomaly_algorithm = [LocalOutlierFactor(novelty=True, contamination=contamination_ratio), IsolationForest(contamination=contamination_ratio), OneClassSVM(nu=contamination_ratio, gamma='scale'), OneClassSVM(nu=contamination_ratio, gamma='auto')], #EllipticEnvelope(contamination=contamination_ratio), 
+				tsvd__n_components = [8,16,32,124,256,512,1024],
+				anomaly_algorithm = [IsolationForest(contamination=contamination_ratio)]#, OneClassSVM(nu=contamination_ratio, gamma='scale')], #EllipticEnvelope(contamination=contamination_ratio), OneClassSVM(nu=contamination_ratio, gamma='auto'), LocalOutlierFactor(novelty=True, contamination=contamination_ratio), 
 				)
-tsvd_n_components = 64
+tsvd_n_components = 256
 
 ###########
 # Classes #
@@ -96,6 +96,9 @@ def pse_pp(x):
 def pse_a(x):
 	return x
 
+def tsvd_explained_variance_percent(estimator, X):
+	return np.sum(estimator.named_steps['tsvd'].explained_variance_ratio_)
+
 ###########
 # Execute #
 ###########
@@ -140,7 +143,7 @@ if __name__ == '__main__':
 		])),
 		('tfidf', TfidfTransformer()),
 		('tsvd', TruncatedSVD(n_components=tsvd_n_components)),
-		('anomaly_algorithm', IsolationForest())
+		('anomaly_algorithm', IsolationForest(contamination=contamination_ratio))
 	], verbose=True)
 
 	data = [[profile, depa_dict[depa[0]]] for profile, depa in zip(filtered_profiles, filtered_depa)]
@@ -149,7 +152,8 @@ if __name__ == '__main__':
 
 		splitter = YearsSplitter(years_indices, train_years_begin, train_years_end, val_years_begin, val_years_end)
 		score_dict = {'Ratio anomalies {}'.format(depa):DepartmentScorer(depa).anomaly_ratio for depa in depas_to_score}
-		search = GridSearchCV(model, param_grid=param_grid, cv=splitter.split(filtered_profiles), scoring=score_dict, verbose=True, n_jobs=-2, refit=False)
+		score_dict['explained_variance'] = tsvd_explained_variance_percent
+		search = GridSearchCV(model, param_grid=param_grid, cv=splitter.split(filtered_profiles), scoring=score_dict, verbose=True, n_jobs=-1, refit=False)
 
 		search.fit(data)
 
