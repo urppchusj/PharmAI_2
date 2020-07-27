@@ -41,8 +41,8 @@ val_years_end = [2015,2016,2017] # inclusively
 depas_to_score = ['Overall', 'Néonatologie', 'Ob/gyn', 'Oncologie', 'Pédiatrie']
 contamination_ratio = 0.2
 param_grid = dict(
-				tsvd__n_components = [32,64,128,256],#8,16,
-				anomaly_algorithm = [IsolationForest(contamination=contamination_ratio), OneClassSVM(nu=contamination_ratio, gamma='scale'), OneClassSVM(nu=contamination_ratio, gamma='auto')], #LocalOutlierFactor(novelty=True, contamination=contamination_ratio), EllipticEnvelope(contamination=contamination_ratio), 
+				tsvd__n_components = [8,16,32,64,128,256,512],
+				anomaly_algorithm = [LocalOutlierFactor(novelty=True, contamination=contamination_ratio), IsolationForest(contamination=contamination_ratio), OneClassSVM(nu=contamination_ratio, gamma='scale'), OneClassSVM(nu=contamination_ratio, gamma='auto')], #EllipticEnvelope(contamination=contamination_ratio), 
 				)
 tsvd_n_components = 64
 
