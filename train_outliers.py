@@ -42,7 +42,7 @@ depas_to_score = ['Overall', 'Néonatologie', 'Ob/gyn', 'Oncologie', 'Pédiatrie
 contamination_ratio = 0.2
 param_grid = dict(
 				tsvd__n_components = [8,16,32,124,256,512,1024],
-				anomaly_algorithm = [IsolationForest(contamination=contamination_ratio)]#, OneClassSVM(nu=contamination_ratio, gamma='scale')], #EllipticEnvelope(contamination=contamination_ratio), OneClassSVM(nu=contamination_ratio, gamma='auto'), LocalOutlierFactor(novelty=True, contamination=contamination_ratio), 
+				anomaly_algorithm = [IsolationForest(contamination=contamination_ratio), OneClassSVM(nu=contamination_ratio)], #EllipticEnvelope(contamination=contamination_ratio) , LocalOutlierFactor(novelty=True, contamination=contamination_ratio), 
 				)
 tsvd_n_components = 256
 

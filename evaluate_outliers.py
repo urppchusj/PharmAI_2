@@ -15,7 +15,7 @@ contamination_ratio = 0.2
 n_folds = 3
 depas_to_score = ['Overall', 'Néonatologie', 'Ob/gyn', 'Oncologie', 'Pédiatrie']
 
-anomaly_algorithm_rename_dict = {'LocalOutlierFactor(contamination={}, novelty=True)'.format(contamination_ratio):'LOF', 'IsolationForest(contamination={})'.format(contamination_ratio):'IF', 'OneClassSVM(nu={})'.format(contamination_ratio):'OC SVM gamma scale', 'OneClassSVM(gamma=\'auto\', nu={})'.format(contamination_ratio):'OC SVM gamma auto'}
+anomaly_algorithm_rename_dict = {'LocalOutlierFactor(contamination={}, novelty=True)'.format(contamination_ratio):'LOF', 'IsolationForest(contamination={})'.format(contamination_ratio):'IF', 'OneClassSVM(nu={})'.format(contamination_ratio):'OC SVM', 'EllipticEnvelope(contamination={}'.format(contamination_ratio):'EE'}
 
 x_axis_name_in_figure = 'Components'
 algorith_name_in_figure = 'Alg'
@@ -55,6 +55,7 @@ def make_variance_graphs(df):
 	sns.set(style="whitegrid", font_scale=2)
 	f = sns.catplot(font_scale = 2, x=x_axis_name_in_figure, y="Explained variance ratio", data=graph_df, kind='point')
 	f.set_xticklabels(rotation=35,  horizontalalignment='right')
+	plt.ylim(0,1)
 	plt.savefig(os.path.join(data_dir, 'variance_ratio_results.png'))
 
 
