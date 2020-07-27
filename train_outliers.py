@@ -32,19 +32,25 @@ depa_dict_file = 'data/paper_data/depas.csv'
 save_dir = 'model'
 
 # Years to use
-train_years_begin = [2014,2015,2016] # inclusively
-train_years_end = [2014,2015,2016]# inclusively
-val_years_begin = [2015,2016,2017] # inclusively
-val_years_end = [2015,2016,2017] # inclusively
+train_years_begin = [2017] # inclusively
+train_years_end = [2017]# inclusively
+val_years_begin = [] # inclusively
+val_years_end = [] # inclusively
 
 # Model parameters
 depas_to_score = ['Overall', 'Néonatologie', 'Ob/gyn', 'Oncologie', 'Pédiatrie']
 contamination_ratio = 0.2
+
+# Used in cross-validation
 param_grid = dict(
-				tsvd__n_components = [8,16,32,124,256,512,1024],
-				anomaly_algorithm = [IsolationForest(contamination=contamination_ratio), OneClassSVM(nu=contamination_ratio)], #EllipticEnvelope(contamination=contamination_ratio) , LocalOutlierFactor(novelty=True, contamination=contamination_ratio), 
+				tsvd__n_components = [512],
+				anomaly_algorithm = [IsolationForest(contamination=contamination_ratio), OneClassSVM(nu=contamination_ratio)], #EllipticEnvelope(contamination=contamination_ratio) , LocalOutlierFactor(novelty=True, contamination=contamination_ratio),  
 				)
-tsvd_n_components = 256
+
+# Used in final model training
+tsvd_n_components = 512
+anomaly_algorithm = IsolationForest(contamination=contamination_ratio)
+# anomaly_algorithm = OneClassSVM(nu=contamination_ratio)
 
 ###########
 # Classes #
