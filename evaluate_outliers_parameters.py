@@ -31,8 +31,13 @@ metric_rename_dict = {'split{}_test_Ratio anomalies {}'.format(n,depa):'Ratio an
 
 def makegraphs(datapath):
 
-	# load the data file
-	all_data = pd.read_csv(os.path.join(datapath, 'cv_results.csv'))
+	# load the data files and concatenate them into a single pandas dataframe
+	files_data = []
+	for file in os.listdir(datapath):
+		if file.endswith('.csv'):
+			file_df = pd.read_csv(os.path.join(datapath, file))
+			files_data.append(file_df)
+	all_data = pd.concat(files_data)
 
 	all_data_filtered = all_data[columns_to_extract]
 
@@ -44,7 +49,8 @@ def makegraphs(datapath):
 	all_data_graph_df['Metric'] = all_data_graph_df['Metric'].map(metric_rename_dict)
 	#all_data_graph_df[x_axis_name_in_figure] = all_data_graph_df[x_axis_name_in_figure].astype('int8')
 	sns.set(style="whitegrid", font_scale=2)
-	sns.catplot(font_scale = 2, x=x_axis_name_in_figure, y="Result", hue="Metric", col=algorith_name_in_figure,data=all_data_graph_df, kind='point', margin_titles=True)
+	f = sns.catplot(font_scale = 2, x=x_axis_name_in_figure, y="Result", hue="Metric", col=algorith_name_in_figure,data=all_data_graph_df, kind='point', margin_titles=True)
+	f.set_xticklabels(rotation=35,  horizontalalignment='right')
 	plt.savefig(os.path.join(datapath, 'parameter_results.png'))
 
 
@@ -55,5 +61,3 @@ def makegraphs(datapath):
 if __name__ == '__main__':
 
 	makegraphs(data_dir)
-
-
