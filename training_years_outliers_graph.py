@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 # Parameters #
 ##############
 
-training_data_dir = 'saved_models/training_years_outliers'
+training_data_dir = 'experiments/training_years_outliers'
 n_folds = 3
 depas_to_score = ['Overall', 'Néonatologie', 'Ob/gyn', 'Oncologie', 'Pédiatrie']
 
