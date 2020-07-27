@@ -3,10 +3,9 @@ import os
 import joblib
 import numpy as np
 import pandas as pd
-from gensim.matutils import Sparse2Corpus
-from gensim.sklearn_api import LsiTransformer
 from sklearn.compose import ColumnTransformer
 from sklearn.covariance import EllipticEnvelope
+from sklearn.decomposition import TruncatedSVD
 from sklearn.ensemble import IsolationForest
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.metrics import make_scorer
@@ -33,7 +32,7 @@ depa_dict_file = 'data/paper_data/depas.csv'
 save_dir = 'model'
 
 # Years to use
-train_years_begin = [2005,2006,2007] # inclusively
+train_years_begin = [2014,2015,2016] # inclusively
 train_years_end = [2014,2015,2016]# inclusively
 val_years_begin = [2015,2016,2017] # inclusively
 val_years_end = [2015,2016,2017] # inclusively
@@ -42,14 +41,14 @@ val_years_end = [2015,2016,2017] # inclusively
 depas_to_score = ['Overall', 'Néonatologie', 'Ob/gyn', 'Oncologie', 'Pédiatrie']
 contamination_ratio = 0.2
 param_grid = dict(
-				tsvd__num_topics = [64],#8,16,32,64],
-				anomaly_algorithm = [LocalOutlierFactor(novelty=True, contamination=contamination_ratio)]#EllipticEnvelope(contamination=contamination_ratio), , #IsolationForest(contamination=contamination_ratio)]
+				tsvd__n_components = [32,64,128,256],#8,16,
+				anomaly_algorithm = [IsolationForest(contamination=contamination_ratio), OneClassSVM(nu=contamination_ratio, gamma='scale'), OneClassSVM(nu=contamination_ratio, gamma='auto')], #LocalOutlierFactor(novelty=True, contamination=contamination_ratio), EllipticEnvelope(contamination=contamination_ratio), 
 				)
-tsvd_n_components = 8
+tsvd_n_components = 64
 
 ###########
 # Classes #
-###########
+###########   
 
 class YearsSplitter():
 
@@ -140,8 +139,7 @@ if __name__ == '__main__':
 				('depas', 'drop', 1),
 		])),
 		('tfidf', TfidfTransformer()),
-		('sparse2corpus', FunctionTransformer(func=Sparse2Corpus, accept_sparse=True, validate=False, kw_args={'documents_columns': False})),
-		('tsvd', LsiTransformer(num_topics=tsvd_n_components)),
+		('tsvd', TruncatedSVD(n_components=tsvd_n_components)),
 		('anomaly_algorithm', IsolationForest())
 	], verbose=True)
 
