@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 # Parameters #
 ##############
 
-data_dir = 'experiments/outliers_variance'
+data_dir = 'experiments/outliers_parameters'
 contamination_ratio = 0.2
 n_folds = 3
 depas_to_score = ['Overall', 'Néonatologie', 'Ob/gyn', 'Oncologie', 'Pédiatrie']
