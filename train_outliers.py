@@ -169,6 +169,6 @@ if __name__ == '__main__':
 	
 	else:
 
-		model.fit(depa)
+		model.fit(data)
 		os.makedirs(save_dir)
 		joblib.dump(model, os.path.join(save_dir, 'outlier_pipeline.joblib'))
