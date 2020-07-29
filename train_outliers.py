@@ -8,11 +8,9 @@ from sklearn.covariance import EllipticEnvelope
 from sklearn.decomposition import TruncatedSVD
 from sklearn.ensemble import IsolationForest
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from sklearn.metrics import make_scorer
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import FunctionTransformer
 from sklearn.svm import OneClassSVM
 
 from train_ganomaly import (execution_checks, filter_partition, load_data,
@@ -49,8 +47,8 @@ param_grid = dict(
 
 # Used in final model training
 tsvd_n_components = 512
-anomaly_algorithm = IsolationForest(contamination=contamination_ratio)
-# anomaly_algorithm = OneClassSVM(nu=contamination_ratio)
+#anomaly_algorithm = IsolationForest(contamination=contamination_ratio)
+anomaly_algorithm = OneClassSVM(nu=contamination_ratio)
 
 ###########
 # Classes #
@@ -149,7 +147,7 @@ if __name__ == '__main__':
 		])),
 		('tfidf', TfidfTransformer()),
 		('tsvd', TruncatedSVD(n_components=tsvd_n_components)),
-		('anomaly_algorithm', IsolationForest(contamination=contamination_ratio))
+		('anomaly_algorithm', anomaly_algorithm)
 	], verbose=True)
 
 	data = [[profile, depa_dict[depa[0]]] for profile, depa in zip(filtered_profiles, filtered_depa)]
