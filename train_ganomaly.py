@@ -309,8 +309,11 @@ def remove_by_idx(list_to_clean, idxes):
 		list_to_clean.pop(idx)
 	return list_to_clean
 
-def not_in_dict_keys_idxes(list_to_examine, dictionary):
-	return [idx for idx, element in enumerate(list_to_examine) if element[0] not in dictionary.keys()]
+def not_in_dict_keys_idxes(list_to_examine, dictionary, list_in_element=True):
+	if list_in_element:
+		return [idx for idx, element in enumerate(list_to_examine) if element[0] not in dictionary.keys()]
+	else:
+		return [idx for idx, element in enumerate(list_to_examine) if element not in dictionary.keys()]
 
 def filter_partition(profiles_list, depa_list, depa_dict, partition_name):
 	print('Building {} data partition...'.format(partition_name))
