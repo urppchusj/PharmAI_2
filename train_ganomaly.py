@@ -441,9 +441,9 @@ if __name__ == '__main__':
 		vectorization_layer = TextVectorization(output_mode='binary')
 		vectorization_layer.adapt(train_ds)
 
-		x = Input(shape=(len(vectorization_layer.get_vocabulary()) + 1,))
+		x = Input(shape=(len(vectorization_layer.get_vocabulary()),))
 		z = Encoder(autoenc_max_size, autoenc_squeeze_size, dropout, activation_type, name='enc1')(x)
-		x_hat = Decoder(len(vectorization_layer.get_vocabulary()) + 1, autoenc_max_size, dropout, activation_type, name='dec')(z)
+		x_hat = Decoder(len(vectorization_layer.get_vocabulary()), autoenc_max_size, dropout, activation_type, name='dec')(z)
 		z_hat = Encoder(autoenc_max_size, autoenc_squeeze_size, dropout, activation_type, name='enc2')(x_hat)
 		
 		feature_extracted = FeatureExtractor(feat_ext_max_size, feat_ext_min_size, dropout, name='feat_ext')(x)
