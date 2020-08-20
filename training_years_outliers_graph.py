@@ -13,8 +13,10 @@ from matplotlib import pyplot as plt
 training_data_dir = 'experiments/training_years_outliers'
 n_folds = 3
 depas_to_score = ['Overall', 'Néonatologie', 'Ob/gyn', 'Oncologie', 'Pédiatrie']
+depa_rename_dict = {'Overall':'overall', 'Néonatologie':'NICU', 'Ob/gyn':'ob/gyn', 'Oncologie':'oncology', 'Pédiatrie':'general pediatrics'}
 
-anomaly_algorithm_rename_dict = {'LocalOutlierFactor(contamination=0.2, novelty=True)':'LOF', 'EllipticEnvelope(contamination=0.2)':'EE', 'IsolationForest(contamination=0.2)':'IF', 'OneClassSVM(nu=0.2)':'OC SVM'}
+contamination_ratio = 0.2
+anomaly_algorithm_rename_dict = {'LocalOutlierFactor(contamination={}, novelty=True)'.format(contamination_ratio):'Loc Out Fac', 'IsolationForest(contamination={})'.format(contamination_ratio):'Iso For', 'OneClassSVM(nu={})'.format(contamination_ratio):'One Cl SVM', 'EllipticEnvelope(contamination={})'.format(contamination_ratio):'Rob Cov'}
 
 x_axis_name_in_figure = 'Years'
 algorith_name_in_figure = 'Alg'
@@ -24,7 +26,7 @@ column_name_rename_dict = {'param_tsvd__n_components':n_components_name_in_figur
 columns_to_extract = ['split{}_test_Ratio anomalies {}'.format(n, depa) for depa in depas_to_score for n in range(n_folds)]
 columns_to_extract.extend([x_axis_name_in_figure, 'param_tsvd__n_components', 'param_anomaly_algorithm'])
 
-metric_rename_dict = {'split{}_test_Ratio anomalies {}'.format(n,depa):'Ratio anomalies {}'.format(depa) for depa in depas_to_score for n in range(n_folds)}
+metric_rename_dict = {'split{}_test_Ratio anomalies {}'.format(n,depa):'Atypical profiles ratio {}'.format(depa_rename_dict[depa]) for depa in depas_to_score for n in range(n_folds)}
 
 #############
 # Functions #
@@ -50,9 +52,9 @@ def makegraphs(datapath):
 	all_data_graph_df.rename(inplace=True, index=str, columns={'level_3':'Metric', 0:'Result'})
 	all_data_graph_df['Metric'] = all_data_graph_df['Metric'].map(metric_rename_dict)
 	all_data_graph_df[x_axis_name_in_figure] = all_data_graph_df[x_axis_name_in_figure].astype('int8')
-	sns.set(style="whitegrid", font_scale=2)
-	sns.catplot(font_scale = 2, x=x_axis_name_in_figure, y="Result", hue="Metric", row=algorith_name_in_figure, col=n_components_name_in_figure,data=all_data_graph_df, kind='point', margin_titles=True)
-	plt.savefig(os.path.join(datapath, 'training_years_results.png'))
+	sns.set(style="whitegrid", font_scale=2.5)
+	sns.catplot(x=x_axis_name_in_figure, y="Result", hue="Metric", row=algorith_name_in_figure, col=n_components_name_in_figure,data=all_data_graph_df, kind='point', margin_titles=True)
+	plt.savefig(os.path.join(datapath, 'training_years_results.png'), dpi=200)
 
 
 #############
