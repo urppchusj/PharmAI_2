@@ -22,16 +22,16 @@ from train_ganomaly import (execution_checks, filter_partition, load_data,
 ##############
 
 # Data files
-profiles_file = 'data/paper_data/active_meds_list.pkl'
-depa_file = 'data/paper_data/depa_list.pkl'
-depa_dict_file = 'data/paper_data/depas.csv'
+profiles_file = 'data/v20200401/active_meds_list.pkl'
+depa_file = 'data/v20200401/depa_list.pkl'
+depa_dict_file = 'data/v20200401/depas.csv'
 
 # Save dir
-save_dir = 'model'
+save_dir = 'model_v20200401'
 
 # Years to use
-train_years_begin = [2017] # inclusively
-train_years_end = [2017]# inclusively
+train_years_begin = [2019] # inclusively
+train_years_end = [2020]# inclusively
 val_years_begin = [] # inclusively
 val_years_end = [] # inclusively
 
@@ -48,7 +48,7 @@ param_grid = dict(
 # Used in final model training
 tsvd_n_components = 512
 #anomaly_algorithm = IsolationForest(contamination=contamination_ratio)
-anomaly_algorithm = OneClassSVM(nu=contamination_ratio)
+anomaly_algorithm = IsolationForest(nu=contamination_ratio)
 
 ###########
 # Classes #
