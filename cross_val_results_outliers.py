@@ -14,8 +14,9 @@ data_dir = 'experiments/outliers_parameters'
 contamination_ratio = 0.2
 n_folds = 3
 depas_to_score = ['Overall', 'Néonatologie', 'Ob/gyn', 'Oncologie', 'Pédiatrie']
+depa_rename_dict = {'Overall':'overall', 'Néonatologie':'NICU', 'Ob/gyn':'ob/gyn', 'Oncologie':'oncology', 'Pédiatrie':'general pediatrics'}
 
-anomaly_algorithm_rename_dict = {'LocalOutlierFactor(contamination={}, novelty=True)'.format(contamination_ratio):'LOF', 'IsolationForest(contamination={})'.format(contamination_ratio):'IF', 'OneClassSVM(nu={})'.format(contamination_ratio):'OC SVM', 'EllipticEnvelope(contamination={}'.format(contamination_ratio):'EE'}
+anomaly_algorithm_rename_dict = {'LocalOutlierFactor(contamination={}, novelty=True)'.format(contamination_ratio):'Loc Out Fac', 'IsolationForest(contamination={})'.format(contamination_ratio):'Iso For', 'OneClassSVM(nu={})'.format(contamination_ratio):'One Cl SVM', 'EllipticEnvelope(contamination={})'.format(contamination_ratio):'Rob Cov'}
 
 x_axis_name_in_figure = 'Components'
 algorith_name_in_figure = 'Alg'
@@ -26,7 +27,7 @@ columns_to_extract_variance = ['split{}_test_explained_variance'.format(n) for n
 columns_to_extract_depascore.extend([x_axis_name_in_figure, algorith_name_in_figure])
 columns_to_extract_variance.extend([x_axis_name_in_figure, algorith_name_in_figure])
 
-metric_rename_dict = {'split{}_test_Ratio anomalies {}'.format(n,depa):'Ratio anomalies {}'.format(depa) for depa in depas_to_score for n in range(n_folds)}
+metric_rename_dict = {'split{}_test_Ratio anomalies {}'.format(n,depa):'Atypical profiles ratio {}'.format(depa_rename_dict[depa]) for depa in depas_to_score for n in range(n_folds)}
 
 #############
 # Functions #

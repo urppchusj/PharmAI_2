@@ -16,7 +16,7 @@ depa_file = 'data/paper_data/depa_list_test.pkl'
 depa_dict_file = 'data/paper_data/depas.csv'
 
 # Model dir
-model_dir = 'experiments/outliers/ocsvm'
+model_dir = 'experiments/outliers/if'
 
 # Years to use
 test_years_begin = 2018 # inclusively
