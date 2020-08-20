@@ -31,7 +31,7 @@ save_dir = 'model_v20200401'
 
 # Years to use
 train_years_begin = [2019] # inclusively
-train_years_end = [2017]# inclusively
+train_years_end = [2020]# inclusively
 val_years_begin = [] # inclusively
 val_years_end = [] # inclusively
 
