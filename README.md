@@ -66,9 +66,9 @@ Maxime Thibault.
 
 Paper currently under peer review.  
 Abstract describing the GANomaly model presented at the Machine Learning for Healthcare 2020 conference  
-[Abstract](https://static1.squarespace.com/static/59d5ac1780bd5ef9c396eda6/t/5f245e305efe21770a14b204/1596218928943/112CameraReadySubmission20200722+Clinical+Abstract+MLHC+2020+CAMERA+READY+FINAL.pdf)
-[Spotlight presentation](https://www.youtube.com/watch?v=TNT2jOyMaYs&list=PLRqwW7v078faPwD53NgpuDhKq2j3qDgUq&index=23)
-[Poster](https://bit.ly/2CWtBrq)
+- [Abstract](https://static1.squarespace.com/static/59d5ac1780bd5ef9c396eda6/t/5f245e305efe21770a14b204/1596218928943/112CameraReadySubmission20200722+Clinical+Abstract+MLHC+2020+CAMERA+READY+FINAL.pdf)
+- [Spotlight presentation](https://www.youtube.com/watch?v=TNT2jOyMaYs&list=PLRqwW7v078faPwD53NgpuDhKq2j3qDgUq&index=23)
+- [Poster](https://bit.ly/2CWtBrq)
 
 # License
 
