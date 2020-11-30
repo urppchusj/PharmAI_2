@@ -1,10 +1,10 @@
 import os
 import joblib
 
-from train_ganomaly import (filter_partition, load_data,
+from train_ganomaly import (verify_partition, load_data,
                             make_partition_list,
                             save_data_file)
-from train_outliers import DepartmentScorer, pse_a, pse_pp
+from train_basic import DepartmentScorer, pse_a, pse_pp
 
 ##############
 # Parameters #
@@ -13,7 +13,6 @@ from train_outliers import DepartmentScorer, pse_a, pse_pp
 # Data files
 profiles_file = 'data/paper_data/active_meds_list_test.pkl'
 depa_file = 'data/paper_data/depa_list_test.pkl'
-depa_dict_file = 'data/paper_data/depas.csv'
 
 # Model dir
 model_dir = 'experiments/outliers/if'
@@ -44,15 +43,15 @@ depa_string_mapdict = {
 
 if __name__ == '__main__':
 
-	profiles, depa, depa_dict = load_data(profiles_file, depa_file, depa_dict_file)
+	profiles, depa = load_data(profiles_file, depa_file)
 
 	profiles_test = make_partition_list(profiles, test_years_begin, test_years_end)
 	depa_test = make_partition_list(depa, test_years_begin, test_years_end)
-	profiles_test, depa_test = filter_partition(profiles_test, depa_test, depa_dict, 'test')
+	verify_partition(profiles_test, depa_test, 'test')
 
 	pipeline = joblib.load(os.path.join(model_dir, 'outlier_pipeline.joblib'))
 
-	data = [[profile, depa_dict[depa[0]]] for profile, depa in zip(profiles_test, depa_test)]
+	data = [[profile, depa[0]] for profile, depa in zip(profiles_test, depa_test)]
 	save_data_file(os.path.join(model_dir, 'cat_depa_list.pkl'), [d[1] for d in data])
 
 	predictions = pipeline.predict(data)

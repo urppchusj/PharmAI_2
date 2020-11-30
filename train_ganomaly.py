@@ -14,7 +14,6 @@ from tqdm.keras import TqdmCallback
 # Data files
 profiles_file = 'data/paper_data/active_meds_list.pkl'
 depa_file = 'data/paper_data/depa_list.pkl'
-depa_dict_file = 'data/paper_data/depas.csv'
 
 # Save dir
 save_dir = 'model'
@@ -277,17 +276,14 @@ def execution_checks(save_dir, train_or_test_years_begin, train_or_test_years_en
 
 	return validate, n_cross_val_folds, train_or_test_years_begin, train_or_test_years_end, val_years_begin, val_years_end
 
-def load_data(profiles_file, depa_file, depa_dict_file):
+def load_data(profiles_file, depa_file):
 	
 	print('Loading data...')
 
 	profiles = load_data_file(profiles_file)
 	depa = load_data_file(depa_file)
 
-	depa_df = pd.read_csv(depa_dict_file, sep=';')
-	depa_dict = depa_df.dropna(subset=['cat_depa']).set_index('orig_depa')['cat_depa'].to_dict()
-
-	return profiles, depa, depa_dict
+	return profiles, depa
 
 def load_data_file(filepath):
 	with open(filepath, mode='rb') as opened_file:
@@ -315,8 +311,8 @@ def not_in_dict_keys_idxes(list_to_examine, dictionary, list_in_element=True):
 	else:
 		return [idx for idx, element in enumerate(list_to_examine) if element not in dictionary.keys()]
 
-def filter_partition(profiles_list, depa_list, depa_dict, partition_name):
-	print('Building {} data partition...'.format(partition_name))
+def verify_partition(profiles_list, depa_list, partition_name):
+	print('Verifying {} data partition...'.format(partition_name))
 
 	print('Number of samples in profiles: {}'.format(len(profiles_list)))
 	print('Number of samples in depa: {}'.format(len(depa_list)))
@@ -326,30 +322,8 @@ def filter_partition(profiles_list, depa_list, depa_dict, partition_name):
 	except:
 		print('ERROR: Number of samples in  partition is not equal between profiles and departements')
 		quit()
-
-	# Remove samples with no depa (interferes with categorization by department later on)
-
-	print('Dropping samples with no department...')
-
-	samples_idx_todrop = empty_list_idxes(depa_list)
-	profiles_list = remove_by_idx(profiles_list, samples_idx_todrop)
-	depa_list = remove_by_idx(depa_list, samples_idx_todrop)
-	print('Dropped {} samples in set'.format(len(samples_idx_todrop)))
-	print('Number of samples in profiles: {}'.format(len(profiles_list)))
-	print('Number of samples in depa: {}'.format(len(depa_list)))
-
-	# Remove departments not able to be categorized
-
-	print('Dropping samples with uncategorized departments...')
-
-	samples_idx_todrop = not_in_dict_keys_idxes(depa_list, depa_dict)
-	profiles_list = remove_by_idx(profiles_list, samples_idx_todrop)
-	depa_list = remove_by_idx(depa_list, samples_idx_todrop)
-	print('Dropped {} samples in set'.format(len(samples_idx_todrop)))
-	print('Number of samples in profiles: {}'.format(len(profiles_list)))
-	print('Number of samples in depa: {}'.format(len(depa_list)))
-
-	return profiles_list, depa_list
+	
+	return
 
 def list_to_text(list_to_join):
 	return [' '.join(l) for l in list_to_join]
@@ -403,7 +377,7 @@ if __name__ == '__main__':
 
 	# Load data
 
-	profiles, depa, depa_dict = load_data(profiles_file, depa_file, depa_dict_file)
+	profiles, depa = load_data(profiles_file, depa_file)
 
 	# Train
 
@@ -422,11 +396,11 @@ if __name__ == '__main__':
 
 		profiles_train = make_partition_list(profiles, train_year_begin, train_year_end)
 		depa_train = make_partition_list(depa, train_year_begin, train_year_end)
-		profiles_train, depa_train = filter_partition(profiles_train, depa_train, depa_dict, 'train')
+		verify_partition(profiles_train, depa_train, 'train')
 		if validate:
 			profiles_val = make_partition_list(profiles, val_year_begin, val_year_end)
 			depa_val = make_partition_list(depa, val_year_begin, val_year_end)
-			profiles_val, depa_val = filter_partition(profiles_val, depa_val, depa_dict, 'val')
+			verify_partition(profiles_val, depa_val, 'val')
 
 		# Convert the lists to Tensorflow Datasets, shuffle and batch
 

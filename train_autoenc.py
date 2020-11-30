@@ -9,10 +9,10 @@ from tqdm.keras import TqdmCallback
 
 from train_ganomaly import (Decoder, Encoder, FoldLogger, autoencoder_accuracy,
                             autoencoder_false_neg_rate, execution_checks,
-                            filter_partition, list_to_text, load_data,
-                            load_data_file, make_partition_list,
+                            list_to_text, load_data, load_data_file,
+                            make_partition_list,
                             reverse_autoencoder_false_neg_rate, save_data_file,
-                            text_to_dataset)
+                            text_to_dataset, verify_partition)
 
 ##############
 # Parameters #
@@ -21,7 +21,6 @@ from train_ganomaly import (Decoder, Encoder, FoldLogger, autoencoder_accuracy,
 # Data files
 profiles_file = 'data/paper_data/active_meds_list.pkl'
 depa_file = 'data/paper_data/depa_list.pkl'
-depa_dict_file = 'data/paper_data/depas.csv'
 
 # Save dir
 save_dir = 'model'
@@ -107,7 +106,7 @@ if __name__ == '__main__':
 
 	# Load data
 
-	profiles, depa, depa_dict = load_data(profiles_file, depa_file, depa_dict_file)
+	profiles, depa = load_data(profiles_file, depa_file)
 
 	# Train
 
@@ -126,11 +125,11 @@ if __name__ == '__main__':
 
 		profiles_train = make_partition_list(profiles, train_year_begin, train_year_end)
 		depa_train = make_partition_list(depa, train_year_begin, train_year_end)
-		profiles_train, depa_train = filter_partition(profiles_train, depa_train, depa_dict, 'train')
+		verify_partition(profiles_train, depa_train, 'train')
 		if validate:
 			profiles_val = make_partition_list(profiles, val_year_begin, val_year_end)
 			depa_val = make_partition_list(depa, val_year_begin, val_year_end)
-			profiles_val, depa_val = filter_partition(profiles_val, depa_val, depa_dict, 'val')
+			verify_partition(profiles_val, depa_val, 'val')
 
 		# Convert the lists to Tensorflow Datasets, shuffle and batch
 

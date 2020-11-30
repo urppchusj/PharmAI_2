@@ -9,7 +9,7 @@ from tqdm import tqdm
 from skimage.filters import threshold_otsu
 from train_ganomaly import (Ganomaly, autoencoder_accuracy,
                             autoencoder_false_neg_rate, encoder_loss,
-                            filter_partition, list_to_text, load_data,
+                            verify_partition, list_to_text, load_data,
                             load_data_file, make_partition_list,
                             reverse_autoencoder_false_neg_rate, save_data_file,
                             text_to_dataset)
@@ -22,7 +22,6 @@ from train_ganomaly import (Ganomaly, autoencoder_accuracy,
 model_dir = 'ganomaly/paper-final-model/trained_model'
 profiles_file = 'data/paper_data/active_meds_list_test.pkl'
 depa_file = 'data/paper_data/depa_list_test.pkl'
-depa_dict_file = 'data/paper_data/depas.csv'
 
 # Years to use
 test_years_begin = 2018 # inclusively
@@ -66,13 +65,13 @@ def build_inference_ganomaly(vocabulary, adv_autoencoder):
 
 if __name__ == '__main__':
 
-	profiles, depa, depa_dict = load_data(profiles_file, depa_file, depa_dict_file)
+	profiles, depa = load_data(profiles_file, depa_file)
 
 	profiles_test = make_partition_list(profiles, test_years_begin, test_years_end)
 	depa_test = make_partition_list(depa, test_years_begin, test_years_end)
 
-	profiles_test, depa_test = filter_partition(profiles_test, depa_test, depa_dict, 'test')
-	cat_depa_test = [depa_dict[d[0]] for d in depa_test]
+	verify_partition(profiles_test, depa_test, 'test')
+	cat_depa_test = [d[0] for d in depa_test]
 	save_data_file(os.path.join(model_dir, 'cat_depa_list.pkl'), cat_depa_test)
 	unique_categorized_departements = list(set(cat_depa_test))
 
@@ -125,7 +124,7 @@ if __name__ == '__main__':
 	otsu_dict['global'] = global_otsu
 	for depa in unique_categorized_departements:
 	
-		depa_idxes = [idx for idx, element in enumerate(depa_test) if depa_dict[element[0]] == depa]
+		depa_idxes = [idx for idx, element in enumerate(depa_test) if element[0] == depa]
 		depa_encloss = np.take(encoder_losses, depa_idxes)
 		
 		depa_encloss_forotsu = depa_encloss[depa_encloss < np.percentile(depa_encloss,90)]

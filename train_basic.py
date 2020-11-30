@@ -13,9 +13,9 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.pipeline import Pipeline
 from sklearn.svm import OneClassSVM
 
-from train_ganomaly import (execution_checks, filter_partition, load_data,
-                            load_data_file, make_partition_list,
-                            save_data_file)
+from train_ganomaly import (execution_checks, load_data, load_data_file,
+                            make_partition_list, save_data_file,
+                            verify_partition)
 
 ##############
 # Parameters #
@@ -24,7 +24,6 @@ from train_ganomaly import (execution_checks, filter_partition, load_data,
 # Data files
 profiles_file = 'data/v20200401/active_meds_list.pkl'
 depa_file = 'data/v20200401/depa_list.pkl'
-depa_dict_file = 'data/v20200401/depas.csv'
 
 # Save dir
 save_dir = 'model_v20200401'
@@ -115,7 +114,7 @@ if __name__ == '__main__':
 
 	# Load data
 
-	profiles, depa, depa_dict = load_data(profiles_file, depa_file, depa_dict_file)
+	profiles, depa = load_data(profiles_file, depa_file)
 
 	# Prepare the data
 
@@ -132,7 +131,7 @@ if __name__ == '__main__':
 
 		profiles_year = make_partition_list(profiles, year, year)
 		depa_year = make_partition_list(depa, year, year)
-		profiles_year, depa_year = filter_partition(profiles_year, depa_year, depa_dict, year)
+		verify_partition(profiles_year, depa_year, year)
 		
 		filtered_profiles.extend(profiles_year)
 		filtered_depa.extend(depa_year)
@@ -150,7 +149,7 @@ if __name__ == '__main__':
 		('anomaly_algorithm', anomaly_algorithm)
 	], verbose=True)
 
-	data = [[profile, depa_dict[depa[0]]] for profile, depa in zip(filtered_profiles, filtered_depa)]
+	data = [[profile, depa[0]] for profile, depa in zip(filtered_profiles, filtered_depa)]
 
 	if validate:
 
