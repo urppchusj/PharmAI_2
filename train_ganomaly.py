@@ -12,17 +12,17 @@ from tqdm.keras import TqdmCallback
 ##############
 
 # Data files
-profiles_file = 'data/paper_data/active_meds_list.pkl'
-depa_file = 'data/paper_data/depa_list.pkl'
+profiles_file = 'data/paper_data/train/active_meds_list.pkl'
+depa_file = 'data/paper_data/train/depa_list.pkl'
 
 # Save dir
 save_dir = 'model'
 
 # Years to use
-train_years_begin = [2014,2015,2016,2013,2014,2015,2012,2013,2014,2011,2012,2013,2010,2011,2012,2009,2010,2011,2008,2009,2010,2007,2008,2009,2006,2007,2008,2005,2006,2007] # inclusively
-train_years_end = [2014,2015,2016,2014,2015,2016,2014,2015,2016,2014,2015,2016,2014,2015,2016,2014,2015,2016,2014,2015,2016,2014,2015,2016,2014,2015,2016,2014,2015,2016]# inclusively
-val_years_begin = [2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017] # inclusively
-val_years_end = [2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017] # inclusively
+train_years_begin = [2005,2006,2007] # inclusively
+train_years_end = [2014,2015,2016]# inclusively
+val_years_begin = [2015,2016,2017] # inclusively
+val_years_end = [2015,2016,2017] # inclusively
 
 # Model parameters
 autoenc_max_size = 256
@@ -31,7 +31,7 @@ dropout = 0.1
 activation_type = 'SELU'
 feat_ext_max_size = 128
 feat_ext_min_size = 64
-loss_weights = [100,1,1] # in order: contextual loss, adversarial loss, encoder loss
+loss_weights = [100,1,2] # in order: contextual loss, adversarial loss, encoder loss
 disc_lr = 1e-6
 l1l2ratio = 0.8
 
@@ -326,7 +326,7 @@ def verify_partition(profiles_list, depa_list, partition_name):
 	return
 
 def list_to_text(list_to_join):
-	return [' '.join(l) for l in list_to_join]
+	return [' '.join([str(el) for el in l]) for l in list_to_join]
 
 def text_to_dataset(text, shuffle=False):
 	ds = tf.data.Dataset.from_tensor_slices(text)
