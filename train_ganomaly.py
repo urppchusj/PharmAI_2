@@ -5,7 +5,7 @@ from itertools import chain
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from tqdm.keras import TqdmCallback
+from tqdm import tqdm
 
 ##############
 # Parameters #
@@ -31,14 +31,14 @@ dropout = 0.1
 activation_type = 'SELU'
 feat_ext_max_size = 128
 feat_ext_min_size = 64
-loss_weights = [100,1,2] # in order: contextual loss, adversarial loss, encoder loss
+loss_weights = [100,2,1] # in order: contextual loss, adversarial loss, encoder loss
 disc_lr = 1e-6
 l1l2ratio = 0.8
 
 # Training parameters
 batch_size = 256
 max_training_epochs = 1000
-single_run_epochs = 215
+single_run_epochs = 21
 early_stopping_patience = 5
 early_stopping_loss_delta = 0.001
 
@@ -150,89 +150,35 @@ class FeatureExtractor(tf.keras.layers.Layer):
 			'name':self.name
 		}
 
-# Define the ganomaly model
-class Ganomaly(tf.keras.Model):
+class GanContinueChecker:
 
-	def __init__(self, vectorization_layer, adversarial_autoencoder, discriminator, name, **kwargs):
-		
-		super(Ganomaly, self).__init__(name=name, **kwargs)
-		self.vectorization_layer = vectorization_layer
-		self.adversarial_autoencoder = adversarial_autoencoder
-		self.discriminator = discriminator
+	def __init__(self):
+		self.checks = {
+			'early_stopping_check':{
+				'patience':early_stopping_patience,
+				'min_delta':early_stopping_loss_delta,
+				'reporting_string':'Loss decreased less than {} over {} epochs, stopping training.\n\n',
+				'trigger_result': 'early_stop',
+				}, 
+			}
+		self.absolute_min_loss = 999999
+		self.absolute_min_loss_epoch = 0
 
-	def train_step(self, batch):
-
-		# Train discriminator
-
-		x = self.vectorization_layer(tf.expand_dims(batch, 1))
-		z = self.adversarial_autoencoder.get_layer('enc1')(x, training=False)
-		x_hat = self.adversarial_autoencoder.get_layer('dec')(z, training=False)
-
-		ones_label = tf.ones((tf.shape(x)[0],1))
-		zeros_label = tf.zeros((tf.shape(x)[0],1))
-		y = tf.concat([ones_label, zeros_label], axis=0)
-
-		with tf.GradientTape() as tape:
-
-			y_pred_from_x_hat = self.discriminator(x_hat, training=True)
-			y_pred_from_x = self.discriminator(x, training=True)
-
-			y_pred = tf.concat([y_pred_from_x_hat, y_pred_from_x], axis=0)
-
-			d_loss = self.discriminator.compiled_loss(y, y_pred, regularization_losses=self.discriminator.losses)
-
-		trainable_vars = self.discriminator.trainable_variables
-		grads = tape.gradient(d_loss, trainable_vars)
-		self.discriminator.optimizer.apply_gradients(zip(grads, trainable_vars))
-		self.discriminator.compiled_metrics.update_state(y, y_pred)
-
-		# Train autoencoder
-
-		self.discriminator.trainable = False
-		
-		feature_extracted_from_x_hat = self.discriminator.get_layer('feat_ext')(x_hat, training=False)
-		
-		with tf.GradientTape() as tape:
-
-			x_hat, feature_extracted_from_x, z_hat = self.adversarial_autoencoder(x, training=True)
-			z = self.adversarial_autoencoder.get_layer('enc1')(x, training=True)
-
-			a_loss = self.adversarial_autoencoder.compiled_loss([x, feature_extracted_from_x_hat, z], [x_hat, feature_extracted_from_x, z_hat], regularization_losses=self.adversarial_autoencoder.losses)
-
-		trainable_vars = self.adversarial_autoencoder.trainable_variables
-		grads = tape.gradient(a_loss, trainable_vars)
-		self.adversarial_autoencoder.optimizer.apply_gradients(zip(grads, trainable_vars))
-		self.adversarial_autoencoder.compiled_metrics.update_state([x, feature_extracted_from_x_hat, z], [x_hat, feature_extracted_from_x, z_hat])
-
-		self.discriminator.trainable = True
-		
-		return_dict = {**{'A_' + m.name: m.result() for m in self.adversarial_autoencoder.metrics}, **{'D_' + m.name: m.result() for m in self.discriminator.metrics}}
-
-		return return_dict
-
-	def test_step(self, batch):
-
-		x = self.vectorization_layer(tf.expand_dims(batch, 1))
-		x_hat, feature_extracted_from_x, z_hat = self.adversarial_autoencoder(x, training=False)
-		z = self.adversarial_autoencoder.get_layer('enc1')(x, training=False)
-		feature_extracted_from_x_hat = self.discriminator.get_layer('feat_ext')(x_hat, training=False)
-
-		self.adversarial_autoencoder.compiled_loss([x, feature_extracted_from_x_hat, z], [x_hat, feature_extracted_from_x, z_hat], regularization_losses=self.adversarial_autoencoder.losses)
-		self.adversarial_autoencoder.compiled_metrics.update_state([x, feature_extracted_from_x_hat, z], [x_hat, feature_extracted_from_x, z_hat])
-
-		return_dict = {'A_' + m.name: m.result() for m in self.adversarial_autoencoder.metrics}
-
-		return return_dict
-
-# Custom callback to log the fold
-class FoldLogger(tf.keras.callbacks.Callback):
-
-	def __init__(self, fold, *args, **kwargs):
-		super(FoldLogger, self).__init__(*args, **kwargs)
-		self.fold=fold
-
-	def on_epoch_end(self, epoch, logs):
-		logs['fold'] = self.fold
+	def gan_continue_check(self, val_monitor_losses, epoch):
+		return_object = []
+		cur_epoch_loss = val_monitor_losses[-1]
+		if cur_epoch_loss < self.absolute_min_loss:
+			self.absolute_min_loss = cur_epoch_loss
+			self.absolute_min_loss_epoch = epoch
+		for _, check_dict in self.checks.items():
+			if len(val_monitor_losses) < check_dict['patience'] + 1:
+				continue
+			if cur_epoch_loss > (self.absolute_min_loss - check_dict['min_delta']) and epoch > (self.absolute_min_loss_epoch + check_dict['patience']):
+				print(check_dict['reporting_string'].format(check_dict['min_delta'], check_dict['patience']))
+				return_object.append(check_dict['trigger_result'])
+		print('Current epoch monitored loss: {:.5f}'.format(cur_epoch_loss))
+		print('Absolute minimum loss: {:.5f} at epoch {}\n\n'.format(self.absolute_min_loss, self.absolute_min_loss_epoch + 1))
+		return return_object
 
 #############
 # Functions #
@@ -422,23 +368,19 @@ if __name__ == '__main__':
 		
 		feature_extracted = FeatureExtractor(feat_ext_max_size, feat_ext_min_size, dropout, name='feat_ext')(x)
 		disc = ReLU()(feature_extracted)
-		disc = BatchNormalization()(disc)
-		disc = Dropout(dropout)(disc)
 		disc = Dense(1, activation='sigmoid')(disc)
 		
 		discriminator = Model(x, disc, name='discriminator')
 		discriminator.compile(optimizer=Adam(learning_rate=disc_lr), loss='binary_crossentropy', metrics='accuracy')
+		discriminator.summary()
 
+		discriminator.trainable = False
 		feature_extracted_from_x = discriminator.get_layer('feat_ext')(x)
 
 		adversarial_autoencoder = Model(x, [x_hat, feature_extracted_from_x, z_hat], name='adversarial_autoencoder')
 		adversarial_autoencoder.compile(optimizer=Adam(), loss=['binary_crossentropy', 'mse', encoder_loss], metrics=[[autoencoder_accuracy, autoencoder_false_neg_rate], None, None], loss_weights=loss_weights)
 		
-		discriminator.summary()
 		adversarial_autoencoder.summary()
-		g = Ganomaly(vectorization_layer, adversarial_autoencoder, discriminator, name='ganomaly')
-
-		g.compile()
 
 		# Train
 
@@ -447,25 +389,109 @@ if __name__ == '__main__':
 		else:
 			epoch_range = single_run_epochs
 
-		callbacks = []
+		# Custom training loop
+		c = GanContinueChecker()
+		val_monitor_losses = []
+		for epoch in range(epoch_range):
 
-		if validate:
-			callbacks.append(tf.keras.callbacks.EarlyStopping(
-				monitor="val_A_loss",
-				min_delta=early_stopping_loss_delta,
-				patience=early_stopping_patience,
-				verbose=2, restore_best_weights=True
-				))
-		callbacks.append(FoldLogger(fold))
-		callbacks.append(tf.keras.callbacks.TensorBoard(log_dir=os.path.join(save_dir,'tensorboard', str(fold))))
-		callbacks.append(tf.keras.callbacks.CSVLogger(os.path.join(save_dir,'training.csv'), append=True))
-		callbacks.append(TqdmCallback(verbose=1, data_size=len(profiles_train), batch_size=batch_size))
-		
-		g.fit(train_ds, epochs=epoch_range, validation_data=val_ds, verbose=0, callbacks=callbacks)
+			length_train = len(list(train_ds.as_numpy_iterator()))
+			train_dsi = train_ds.as_numpy_iterator()
+			length_val = len(list(val_ds.as_numpy_iterator()))
+			val_dsi = val_ds.as_numpy_iterator()
+
+			d_losses = []
+			g_losses = []
+
+			print('EPOCH {}\n\n'.format(epoch + 1))
+			print('TRAINING...')
+
+			for batch_data_X in tqdm(train_dsi, total=length_train):
+			
+				# Train discriminator
+
+				ones_label = np.ones((len(batch_data_X),1))
+				zeros_label = np.zeros((len(batch_data_X),1))
+
+				multi_hot = vectorization_layer(tf.expand_dims(batch_data_X, 1))
+				latent_from_data = adversarial_autoencoder.get_layer('enc1')(multi_hot, training=False)
+				reconstructed_from_data = adversarial_autoencoder.get_layer('dec')(latent_from_data, training=False)
+
+				d_loss_generated = discriminator.train_on_batch(reconstructed_from_data, ones_label)
+				d_loss_from_data = discriminator.train_on_batch(multi_hot, zeros_label)
+				d_loss = 0.5 * np.add(d_loss_generated, d_loss_from_data)
+
+				# Train generator
+
+				discriminator.trainable = False
+
+				feature_extracted = discriminator.get_layer('feat_ext')(reconstructed_from_data, training=False)
+				g_loss = adversarial_autoencoder.train_on_batch(multi_hot, [multi_hot, feature_extracted, latent_from_data])
+
+				discriminator.trainable = True
+
+				d_losses.append(d_loss)
+				g_losses.append(g_loss)
+
+			# Compute the metrics for the epoch
+			d_losses = np.array(d_losses)
+			d_losses = np.mean(d_losses, axis=0)
+
+			g_losses = np.array(g_losses)
+			g_losses = np.mean(g_losses, axis=0)
+
+			all_names = discriminator.metrics_names + adversarial_autoencoder.metrics_names
+			all_losses = np.hstack((d_losses, g_losses)).tolist()
+
+			print('EPOCH {} TRAINING RESULTS:'.format(epoch+1))
+			print('\n'.join(['{} : {:.5f}'.format(name,metric) for name,metric in zip(all_names, all_losses)]))
+			print('\n')
+
+			g_val_losses = []
+			if validate:
+
+				print('VALIDATION...')
+				for batch_data_X  in tqdm(val_dsi, total=length_val):
+
+					multi_hot = vectorization_layer(tf.expand_dims(batch_data_X, 1))
+					ones_label = np.ones((len(batch_data_X),1))
+
+					latent_repr = adversarial_autoencoder.get_layer('enc1')(multi_hot, training=False)
+					reconstructed_from_data = adversarial_autoencoder.get_layer('dec')(latent_repr, training=False)
+					feature_extracted = discriminator.get_layer('feat_ext')(reconstructed_from_data, training=False)
+
+					g_loss = adversarial_autoencoder.test_on_batch(multi_hot, [multi_hot, feature_extracted, latent_repr])
+
+					g_val_losses.append(g_loss)
+
+				g_val_losses = np.array(g_val_losses)
+				g_val_losses = np.mean(g_val_losses, axis=0)
+				val_monitor_losses.append(g_val_losses[0])
+				val_names = ['val_' + name for name in adversarial_autoencoder.metrics_names]
+
+				print('EPOCH {} VALIDATION RESULTS:'.format(epoch+1))
+				print('\n'.join(['{} : {:.5f}'.format(name,metric) for name,metric in zip(val_names, g_val_losses)]))
+				print('\n')
+
+				all_names = all_names + val_names
+				all_losses = np.hstack((all_losses, g_val_losses)).tolist()
+
+			continue_check = c.gan_continue_check(val_monitor_losses,epoch)
+			if 'early_stop' in continue_check:
+				break
+
+			epoch_results_df = pd.DataFrame.from_dict({epoch: dict(zip(all_names, all_losses))}, orient='index')
+			epoch_results_df['epoch']=epoch
+			epoch_results_df['fold']=fold
+			# save the dataframe to csv file, create new file at first epoch, else append
+			if epoch == 0 and fold == 0:
+				epoch_results_df.to_csv(os.path.join('training_history.csv'))
+			else:
+				epoch_results_df.to_csv(os.path.join(
+					'training_history.csv'), mode='a', header=False)
 
 	if validate == False:
-		g.adversarial_autoencoder.save(os.path.join(save_dir, 'trained_model'))
-		save_data_file(os.path.join(save_dir,'trained_model', 'vocabulary.pkl'), vectorization_layer.get_vocabulary())
+		adversarial_autoencoder.save(os.path.join('trained_model'))
+		save_data_file(os.path.join('trained_model', 'vocabulary.pkl'), vectorization_layer.get_vocabulary())
 
 
 
