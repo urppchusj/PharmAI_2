@@ -7,7 +7,7 @@ import pandas as pd
 import tensorflow as tf
 from tqdm.keras import TqdmCallback
 
-from train_ganomaly import (Decoder, Encoder, FoldLogger, autoencoder_accuracy,
+from train_ganomaly import (Decoder, Encoder, autoencoder_accuracy,
                             autoencoder_false_neg_rate, execution_checks,
                             list_to_text, load_data, load_data_file,
                             make_partition_list,
@@ -19,23 +19,24 @@ from train_ganomaly import (Decoder, Encoder, FoldLogger, autoencoder_accuracy,
 ##############
 
 # Data files
-profiles_file = 'data/paper_data/active_meds_list.pkl'
-depa_file = 'data/paper_data/depa_list.pkl'
+profiles_file = 'data/paper_data/train/active_meds_list.pkl'
+depa_file = 'data/paper_data/train/depa_list.pkl'
 
 # Save dir
 save_dir = 'model'
 
 # Years to use
-train_years_begin = [2014,2015,2016,2013,2014,2015,2012,2013,2014,2011,2012,2013,2010,2011,2012,2009,2010,2011,2008,2009,2010,2007,2008,2009,2006,2007,2008,2005,2006,2007] # inclusively
-train_years_end = [2014,2015,2016,2014,2015,2016,2014,2015,2016,2014,2015,2016,2014,2015,2016,2014,2015,2016,2014,2015,2016,2014,2015,2016,2014,2015,2016,2014,2015,2016]# inclusively
-val_years_begin = [2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017] # inclusively
-val_years_end = [2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017,2015,2016,2017] # inclusively
+train_years_begin = [2005,2006,2007] # inclusively
+train_years_end = [2014,2015,2016]# inclusively
+val_years_begin = [2015,2016,2017] # inclusively
+val_years_end = [2015,2016,2017] # inclusively
 
 # Model parameters
 autoenc_max_size = 256
 autoenc_squeeze_size = 64
 dropout = 0.1
-activation_type = 'SELU'
+activation_type = 'selu'
+initializer = 'lecun_normal'
 
 # Training parameters
 batch_size = 256
@@ -94,6 +95,16 @@ class AutoEnocder(tf.keras.models.Model):
 
 		return return_dict
 
+# Custom callback to log the fold
+class FoldLogger(tf.keras.callbacks.Callback):
+
+	def __init__(self, fold, *args, **kwargs):
+		super(FoldLogger, self).__init__(*args, **kwargs)
+		self.fold=fold
+
+	def on_epoch_end(self, epoch, logs):
+		logs['fold'] = self.fold
+
 ###########
 # Execute #
 ###########
@@ -144,9 +155,9 @@ if __name__ == '__main__':
 		vectorization_layer = TextVectorization(output_mode='binary')
 		vectorization_layer.adapt(train_ds)
 
-		x = Input(shape=(len(vectorization_layer.get_vocabulary())+1,))
-		z = Encoder(autoenc_max_size, autoenc_squeeze_size, dropout, activation_type, name='enc')(x)
-		x_hat = Decoder(len(vectorization_layer.get_vocabulary()) + 1, autoenc_max_size, dropout, activation_type, name='dec')(z)
+		x = Input(shape=(len(vectorization_layer.get_vocabulary()),))
+		z = Encoder(autoenc_max_size, autoenc_squeeze_size, dropout, activation_type, initializer, name='enc')(x)
+		x_hat = Decoder(len(vectorization_layer.get_vocabulary()), autoenc_max_size, dropout, activation_type, initializer, name='dec')(z)
 
 		autoencoder = Model(x, x_hat)
 		autoencoder.compile(optimizer='Adam', loss='binary_crossentropy', metrics=[autoencoder_accuracy, autoencoder_false_neg_rate])
@@ -177,5 +188,5 @@ if __name__ == '__main__':
 		aa.fit(train_ds, epochs=epoch_range, validation_data = val_ds, verbose=0, callbacks=callbacks)
 
 		if validate == False:
-			autoencoder.save(os.path.join(save_dir, 'trained_model'))
-			save_data_file(os.path.join(save_dir,'trained_model', 'vocabulary.pkl'), vectorization_layer.get_vocabulary())
+			autoencoder.save(os.path.join(save_dir, 'trained_model.h5'))
+			save_data_file(os.path.join(save_dir, 'vocabulary.pkl'), vectorization_layer.get_vocabulary())
