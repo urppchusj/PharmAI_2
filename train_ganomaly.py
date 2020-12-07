@@ -1,4 +1,5 @@
 import os
+import pathlib
 import pickle
 from itertools import chain
 
@@ -19,16 +20,17 @@ depa_file = 'data/paper_data/train/depa_list.pkl'
 save_dir = 'model'
 
 # Years to use
-train_years_begin = [2005,2006,2007] # inclusively
-train_years_end = [2014,2015,2016]# inclusively
-val_years_begin = [2015,2016,2017] # inclusively
-val_years_end = [2015,2016,2017] # inclusively
+train_years_begin = [2008] # inclusively
+train_years_end = [2017]# inclusively
+val_years_begin = [] # inclusively
+val_years_end = [] # inclusively
 
 # Model parameters
 autoenc_max_size = 256
 autoenc_squeeze_size = 64
 dropout = 0.1
-activation_type = 'SELU'
+activation_type = 'selu'
+initializer = 'lecun_normal'
 feat_ext_max_size = 128
 feat_ext_min_size = 64
 loss_weights = [100,2,1] # in order: contextual loss, adversarial loss, encoder loss
@@ -59,19 +61,15 @@ TextVectorization = tf.keras.layers.experimental.preprocessing.TextVectorization
 # Custom encoder layer
 class Encoder(tf.keras.layers.Layer):
 	
-	def __init__(self, autoenc_max_size, autoenc_squeeze_size, dropout, activation_type, name, **kwargs):
+	def __init__(self, autoenc_max_size, autoenc_squeeze_size, dropout, activation_type, initializer, name, **kwargs):
 		super(Encoder, self).__init__(name=name, **kwargs)
 		self.autoenc_max_size = autoenc_max_size
 		self.autoenc_squeeze_size = autoenc_squeeze_size
 		self.dropout = dropout
-		if activation_type == 'ReLU':
-			self.activation = 'relu'
-			self.initializer = 'glorot_uniform'
-		elif activation_type == 'SELU':
-			self.activation = 'selu'
-			self.initializer = 'lecun_normal'
+		self.activation_type = activation_type
+		self.initializer = initializer
 
-		self.encoderl1 = Dense(self.autoenc_max_size, activation=self.activation, kernel_initializer=self.initializer)
+		self.encoderl1 = Dense(self.autoenc_max_size, activation=self.activation_type, kernel_initializer=self.initializer)
 		self.encoderl2 = Dropout(self.dropout)
 		self.encoderl3 = Dense(self.autoenc_squeeze_size)
 
@@ -86,7 +84,7 @@ class Encoder(tf.keras.layers.Layer):
 			'autoenc_max_size':self.autoenc_max_size,
 			'autoenc_squeeze_size':self.autoenc_squeeze_size,
 			'dropout':self.dropout,
-			'activation':self.activation,
+			'activation_type':self.activation_type,
 			'initializer':self.initializer,
 			'name':self.name
 		}
@@ -94,18 +92,14 @@ class Encoder(tf.keras.layers.Layer):
 # Custom decoder layer
 class Decoder(tf.keras.layers.Layer):
 
-	def __init__(self, output_dim, autoenc_max_size, dropout, activation_type, name, **kwargs):
+	def __init__(self, output_dim, autoenc_max_size, dropout, activation_type, initializer, name, **kwargs):
 		super(Decoder, self).__init__(name=name, **kwargs)
 		self.output_dim = output_dim
 		self.autoenc_max_size = autoenc_max_size
 		self.dropout = dropout
-		if activation_type == 'ReLU':
-			self.activation = 'relu'
-			self.initializer = 'glorot_uniform'
-		elif activation_type == 'SELU':
-			self.activation = 'selu'
-			self.initializer = 'lecun_normal'
-		self.decoderl1 = Dense(self.autoenc_max_size, activation=self.activation, kernel_initializer=self.initializer)
+		self.activation_type = activation_type
+		self.initializer = initializer
+		self.decoderl1 = Dense(self.autoenc_max_size, activation=self.activation_type, kernel_initializer=self.initializer)
 		self.decoderl2 = Dropout(self.dropout)
 		self.decoderl3 = Dense(self.output_dim, activation='sigmoid')
 
@@ -120,7 +114,7 @@ class Decoder(tf.keras.layers.Layer):
 			'output_dim':self.output_dim,
 			'autoenc_max_size':self.autoenc_max_size,
 			'dropout':self.dropout,
-			'activation':self.activation,
+			'activation_type':self.activation_type,
 			'initializer':self.initializer,
 			'name':self.name
 		}
@@ -321,6 +315,10 @@ if __name__ == '__main__':
 
 	validate, n_cross_val_folds, train_years_begin, train_years_end, val_years_begin, val_years_end = execution_checks(save_dir, train_years_begin, train_years_end, val_years_begin, val_years_end)
 
+	# Create folder to save if does not exist
+
+	pathlib.Path(os.path.join(save_dir)).mkdir(parents=True, exist_ok=True)
+	
 	# Load data
 
 	profiles, depa = load_data(profiles_file, depa_file)
@@ -362,9 +360,9 @@ if __name__ == '__main__':
 		vectorization_layer.adapt(train_ds)
 
 		x = Input(shape=(len(vectorization_layer.get_vocabulary()),))
-		z = Encoder(autoenc_max_size, autoenc_squeeze_size, dropout, activation_type, name='enc1')(x)
-		x_hat = Decoder(len(vectorization_layer.get_vocabulary()), autoenc_max_size, dropout, activation_type, name='dec')(z)
-		z_hat = Encoder(autoenc_max_size, autoenc_squeeze_size, dropout, activation_type, name='enc2')(x_hat)
+		z = Encoder(autoenc_max_size, autoenc_squeeze_size, dropout, activation_type, initializer, name='enc1')(x)
+		x_hat = Decoder(len(vectorization_layer.get_vocabulary()), autoenc_max_size, dropout, activation_type, initializer, name='dec')(z)
+		z_hat = Encoder(autoenc_max_size, autoenc_squeeze_size, dropout, activation_type, initializer, name='enc2')(x_hat)
 		
 		feature_extracted = FeatureExtractor(feat_ext_max_size, feat_ext_min_size, dropout, name='feat_ext')(x)
 		disc = ReLU()(feature_extracted)
@@ -396,8 +394,6 @@ if __name__ == '__main__':
 
 			length_train = len(list(train_ds.as_numpy_iterator()))
 			train_dsi = train_ds.as_numpy_iterator()
-			length_val = len(list(val_ds.as_numpy_iterator()))
-			val_dsi = val_ds.as_numpy_iterator()
 
 			d_losses = []
 			g_losses = []
@@ -412,7 +408,7 @@ if __name__ == '__main__':
 				ones_label = np.ones((len(batch_data_X),1))
 				zeros_label = np.zeros((len(batch_data_X),1))
 
-				multi_hot = vectorization_layer(tf.expand_dims(batch_data_X, 1))
+				multi_hot = vectorization_layer(batch_data_X)
 				latent_from_data = adversarial_autoencoder.get_layer('enc1')(multi_hot, training=False)
 				reconstructed_from_data = adversarial_autoencoder.get_layer('dec')(latent_from_data, training=False)
 
@@ -449,10 +445,13 @@ if __name__ == '__main__':
 			g_val_losses = []
 			if validate:
 
+				length_val = len(list(val_ds.as_numpy_iterator()))
+				val_dsi = val_ds.as_numpy_iterator()
+
 				print('VALIDATION...')
 				for batch_data_X  in tqdm(val_dsi, total=length_val):
 
-					multi_hot = vectorization_layer(tf.expand_dims(batch_data_X, 1))
+					multi_hot = vectorization_layer(batch_data_X)
 					ones_label = np.ones((len(batch_data_X),1))
 
 					latent_repr = adversarial_autoencoder.get_layer('enc1')(multi_hot, training=False)
@@ -475,23 +474,22 @@ if __name__ == '__main__':
 				all_names = all_names + val_names
 				all_losses = np.hstack((all_losses, g_val_losses)).tolist()
 
-			continue_check = c.gan_continue_check(val_monitor_losses,epoch)
-			if 'early_stop' in continue_check:
-				break
+				continue_check = c.gan_continue_check(val_monitor_losses,epoch)
+				if 'early_stop' in continue_check:
+					break
 
 			epoch_results_df = pd.DataFrame.from_dict({epoch: dict(zip(all_names, all_losses))}, orient='index')
 			epoch_results_df['epoch']=epoch
 			epoch_results_df['fold']=fold
 			# save the dataframe to csv file, create new file at first epoch, else append
 			if epoch == 0 and fold == 0:
-				epoch_results_df.to_csv(os.path.join('training_history.csv'))
+				epoch_results_df.to_csv(os.path.join(save_dir, 'training_history.csv'))
 			else:
-				epoch_results_df.to_csv(os.path.join(
-					'training_history.csv'), mode='a', header=False)
+				epoch_results_df.to_csv(os.path.join(save_dir, 'training_history.csv'), mode='a', header=False)
 
 	if validate == False:
-		adversarial_autoencoder.save(os.path.join('trained_model'))
-		save_data_file(os.path.join('trained_model', 'vocabulary.pkl'), vectorization_layer.get_vocabulary())
+		adversarial_autoencoder.save(os.path.join(save_dir, 'trained_model.h5'))
+		save_data_file(os.path.join(save_dir, 'vocabulary.pkl'), vectorization_layer.get_vocabulary())
 
 
 

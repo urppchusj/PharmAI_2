@@ -12,7 +12,7 @@ from train_ganomaly import load_data_file
 # Parameters #
 ##############
 
-model_dir = 'ganomaly/paper-final-model/trained_model'
+model_dir = 'model'
 
 # Only departments in this dict will be processed, the rest will be dropped
 depa_string_mapdict = {
