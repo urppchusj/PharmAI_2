@@ -20,10 +20,10 @@ depa_file = 'data/paper_data/train/depa_list.pkl'
 save_dir = 'model'
 
 # Years to use
-train_years_begin = [2008] # inclusively
-train_years_end = [2017]# inclusively
-val_years_begin = [] # inclusively
-val_years_end = [] # inclusively
+train_years_begin = [2005,2006,2007] # inclusively
+train_years_end = [2014,2015,2016]# inclusively
+val_years_begin = [2015,2016,2017] # inclusively
+val_years_end = [2015,2016,2017] # inclusively
 
 # Model parameters
 autoenc_max_size = 256
